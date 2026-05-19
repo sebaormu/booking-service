@@ -1,7 +1,7 @@
 package com.booking.bookingservice.bookingservice.domain.usecase.usecase;
 
 import com.booking.bookingservice.bookingservice.domain.model.Booking;
-import com.booking.bookingservice.bookingservice.domain.model.EventDelete;
+import com.booking.bookingservice.bookingservice.domain.model.EventRabbit;
 import com.booking.bookingservice.bookingservice.domain.usecase.exception.BadRequestException;
 import com.booking.bookingservice.bookingservice.domain.usecase.gateway.BookingRepository;
 import com.booking.bookingservice.bookingservice.infrastructure.publisher.EventPublisher;
@@ -28,7 +28,7 @@ public class BookingUseCase {
         return bookingRepository.saveBooking(booking);
     }
 
-    public Mono<Void> updateBooking(Booking booking) {
+    public Mono<Booking> updateBooking(Booking booking) {
         log.info("Ingresa al proceso de actualizar book para el id {}", booking.id());
         return bookingRepository.existById(booking.id())
                 .filter(Boolean.TRUE::equals)
@@ -47,6 +47,8 @@ public class BookingUseCase {
     }
 
     public String eventDelete(Booking booking){
-        return objectMapper.writeValueAsString(new EventDelete(UUID.randomUUID().toString(), "deleteBooking", booking.fkFlight(), booking.reservationAmount()));
+        return objectMapper.writeValueAsString(new EventRabbit(booking.id(), "deleteBooking", booking.fkFlight(), booking.reservationAmount()));
     }
+
+
 }

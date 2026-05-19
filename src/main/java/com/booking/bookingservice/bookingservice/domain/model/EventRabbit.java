@@ -1,6 +1,6 @@
 package com.booking.bookingservice.bookingservice.domain.model;
 
-public record EventDelete(
+public record EventRabbit(
         String id,
         String eventType,
         String fkFlight,

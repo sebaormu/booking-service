@@ -1,5 +1,7 @@
 package com.booking.bookingservice.bookingservice.infrastructure.entrypoints;
 
+import com.booking.bookingservice.bookingservice.domain.model.Booking;
+import com.booking.bookingservice.bookingservice.domain.model.EventRabbit;
 import com.booking.bookingservice.bookingservice.domain.usecase.usecase.BookingUseCase;
 import com.booking.bookingservice.bookingservice.infrastructure.entrypoints.dto.BookingDto;
 import com.booking.bookingservice.bookingservice.infrastructure.publisher.EventPublisher;
@@ -11,6 +13,7 @@ import reactor.core.publisher.Mono;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.ObjectMapper;
 
 
 @Component
@@ -19,11 +22,14 @@ public class HandlerBooking {
     private final BookingUseCase bookingUseCase;
     private static final Logger log =  LoggerFactory.getLogger(HandlerBooking.class);
     private final EventPublisher eventPublisher;
+    private final ObjectMapper objectMapper;
 
 
-    public HandlerBooking(BookingUseCase bookingUseCase, EventPublisher eventPublisher) {
+
+    public HandlerBooking(BookingUseCase bookingUseCase, EventPublisher eventPublisher, ObjectMapper objectMapper) {
         this.bookingUseCase = bookingUseCase;
         this.eventPublisher = eventPublisher;
+        this.objectMapper = objectMapper;
     }
 
     public Mono<ServerResponse> createBooking(ServerRequest serverRequest){
@@ -37,7 +43,12 @@ public class HandlerBooking {
                 .flatMap(bookingDto -> bookingDto.toDomain(bookingDto))
                 .flatMap(bookingUseCase::saveBookig)
                 .flatMap(BookingDto::toDto)
-                .flatMap(dto -> ServerResponse.ok().bodyValue(dto));
+                .flatMap(dto -> {
+                    String eventString = eventSave(dto, "saveEvent");
+                    return eventPublisher.send(eventString, "booking.exchange", "booking.rk")
+                            .then(ServerResponse.ok().bodyValue(dto));
+                });
+
     }
 
     public Mono<ServerResponse> updateBooking(ServerRequest serverRequest){
@@ -48,7 +59,12 @@ public class HandlerBooking {
                 })
                 .flatMap(bookingDto -> bookingDto.toDomain(bookingDto))
                 .flatMap(bookingUseCase::updateBooking)
-                .then( ServerResponse.ok().build());
+                .flatMap(BookingDto::toDto)
+                .flatMap(dto -> {
+                    String eventString = eventSave(dto, "updateEvent");
+                    return eventPublisher.send(eventString, "booking.exchange", "booking.rk")
+                            .then(ServerResponse.ok().bodyValue(dto));
+                });
     }
 
     public Mono<ServerResponse> deleteBooking(ServerRequest serverRequest){
@@ -57,5 +73,9 @@ public class HandlerBooking {
         return bookingUseCase.deleteBook(id)
                 .flatMap(booking -> eventPublisher.send(booking, "booking.exchange", "booking.rk"))
                 .then(ServerResponse.ok().build());
+    }
+
+    public String eventSave(BookingDto booking, String type){
+        return objectMapper.writeValueAsString(new EventRabbit(booking.id(), type, booking.fkFlight(), booking.reservationAmount()));
     }
 }

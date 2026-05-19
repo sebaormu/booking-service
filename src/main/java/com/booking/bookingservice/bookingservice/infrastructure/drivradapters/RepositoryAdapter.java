@@ -31,10 +31,11 @@ public class RepositoryAdapter implements BookingRepository {
     }
 
     @Override
-    public Mono<Void> updateBooking(Booking booking) {
+    public Mono<Booking> updateBooking(Booking booking) {
         log.info("Ingresa al proceso de actualizar book en el repository para el id {}", booking.id());
         return toEntity(booking)
-                .flatMap(bookingEntity -> reactiveRepositoryData.save(bookingEntity).then());
+                .flatMap(reactiveRepositoryData::save)
+                .flatMap(this::toDomain);
     }
 
     @Override
