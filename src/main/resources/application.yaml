@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: BookingService
+  webflux:
+    base-path: /booking
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/prueba-avanzada
+    username: postgres
+    password: 1234
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: ias
+    password: ias2026
